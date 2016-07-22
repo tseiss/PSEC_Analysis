@@ -24,7 +24,7 @@ class Event():
 	
 	#Adds two events, channel by channel. If one event has no channels, returns other event
 	def __add__(self, event2):
-		eventSum = Event()
+		eventSum = Event([])
 		if self.getNumChannels() == 0:
 			return event2
 		elif event2.getNumChannels() == 0:
@@ -41,7 +41,7 @@ class Event():
 		
 	#Multiplies all the waveforms in the event by num
 	def __mul__(self, num):
-		newEvent = Event()
+		newEvent = Event([])
 		for pulse in self.pulseArray:
 			newEvent.addPulse(pulse*num)
 		return newEvent
@@ -64,8 +64,14 @@ class Event():
 		for i in range(0, len(self.pulseArray)):
 			minList.append([i, self.pulseArray[i].findMin()[1]])
 		minList = sorted(minList, key = lambda entry: entry[1])	
+		self.channelOrder = []
 		for entry in minList:
 			self.channelOrder.append(entry[0])
+	
+	#Appends a pulse to the pulse array
+	def addPulse(self, Pulse):
+		self.pulseArray.append(Pulse)
+		self._setChannelOrder()
 	
 	#Returns the number of channels (pulses) in the event	
 	def getNumChannels(self):
@@ -231,18 +237,20 @@ class Event():
 			amps[-1].append(pulse.findMax(lowerLoc = lowerLoc, upperLoc = upperLoc)[1])
 		return amps
 
-	#Search for amps between half of main peak max
-	def getAmpsNearMax(self):
+	#Search for min and max (neg and pos) amps between frac of main negative peak
+	def getAmpsNearMax(self, frac):
 		primCh = self.channelOrder[0]
-		lowerPoint, upperPoint = self.pulseArray[primCh].getFracMinPoints(0.9)
+		lowerPoint, upperPoint = self.pulseArray[primCh].getFracMinPoints(frac)
 		amps = self.getAmpsInWindow(lowerPoint, upperPoint)
+		return amps
+		"""
 		print amps
 		self.plotPulses()
-		#		print lowerPoint
-		#		print upperPoint
-		#		self.plotPulses(show = False)
-		#		timestep = self.pulseArray[0].timestep
-		#		plt.plot(lowerPoint*timestep, self.pulseArray[primCh].waveform[lowerPoint], 'ko')
-		#		plt.plot(upperPoint*timestep, self.pulseArray[primCh].waveform[upperPoint], 'ko')
-		#		plt.show()
-
+		print lowerPoint
+		print upperPoint
+		self.plotPulses(show = False)
+		timestep = self.pulseArray[0].timestep
+		plt.plot(lowerPoint*timestep, self.pulseArray[primCh].waveform[lowerPoint], 'ko')
+		plt.plot(upperPoint*timestep, self.pulseArray[primCh].waveform[upperPoint], 'ko')
+		plt.show()
+		"""

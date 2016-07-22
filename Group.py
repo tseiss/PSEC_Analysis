@@ -189,15 +189,18 @@ class Group:
 				statErrArray[-1].append(entry[1])
 		primAmpArray = [entry[0] for entry in ampArray]	
 		primErrArray = [entry[0] for entry in statErrArray]
-		sigma = 1/float(len(primErrArray)) * np.sqrt(np.sum([x**2 for x in primErrArray]))
-		sigmaSys = np.sqrt(np.std(primAmpArray)**2-sigma**2)
+		sigmaStat = 1/float(len(primErrArray)) * np.sqrt(np.sum([x**2 for x in primErrArray]))
+		sigmaSys = np.std(primAmpArray)
 		print "Pulse Amplitudes (mV):"
 		for i in range(0, len(primAmpArray)):
 			print primAmpArray[i], "pm", primErrArray[i]
-		print "Statistical Error (mV):", sigma
-		print "1 Sigma Systematic Error:", sigmaSys, "mV"
 		print "Average Amplitude:", np.average(primAmpArray), "mV"
-		print "Fractional Systematic Error:", np.abs(sigmaSys/np.average(primAmpArray))
+		print "Statistical Error (mV):", sigmaStat
+		print "Systematic Error:", sigmaSys, "mV"
+		print "Total Error:", np.sqrt(sigmaSys**2+sigmaStat**2), "mV"
+		fracErrSys = np.abs(sigmaSys/np.average(primAmpArray)) 
+		print "Fractional Systematic Error:", fracErrSys
+		return fracErrSys
 
 	#Assumes all data sets in self are to be compared for systematic errors
 	#Prints a lot of systematic and statistical info in for the rise times
@@ -212,9 +215,11 @@ class Group:
 		for i in range(0, len(rtArray)):
 			print round(rtArray[i], 3), "pm", round(errArray[i], 3)
 		print "Average (ns):", np.average(rtArray)
-		sigma = 1/float(len(errArray))*np.sqrt(np.sum([x**2 for x in errArray]))
-		print sigma
-		sigmaSys = np.sqrt(np.std(rtArray)**2-sigma**2)
-		print "Systematic Error (ns):", sigmaSys
-		print "Fractional Systematic Error:", np.abs(sigmaSys)/np.average(rtArray)
+		sigmaStat = 1/float(len(errArray))*np.sqrt(np.sum([x**2 for x in errArray]))
+		print "Statistical Error (mV)", sigmaStat, "ns"
+		sigmaSys = np.std(rtArray)
+		print "Systematic Error (ns):", sigmaSys, "ns"
+		fracSysErr = np.abs(sigmaSys)/np.average(rtArray)	
+		print "Fractional Systematic Error:", fracSysErr
+		return fracSysErr
 			
