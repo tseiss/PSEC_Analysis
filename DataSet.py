@@ -116,7 +116,7 @@ class DataSet:
 		if self.averageEvent:
 			return self.averageEvent
 		else:
-			self.averageEvent = Event.Event()
+			self.averageEvent = Event.Event([])
 			for event in self.eventArray:
 				self.averageEvent += event
 			self.averageEvent = self.averageEvent*(1/float(len(self.eventArray)))
@@ -327,6 +327,9 @@ class DataSet:
 	
 	#Plots numEvents random events from the dataset
 	def plotRandomEvents(self, numEvents, RisePoint = False):
+		if self.numEvents == 0:
+			print "No events in data set to plot."
+			return
 		if not RisePoint:
 			allChannels = [0, 1, 2, 3, 4, 5]
 			for i in range(0, numEvents):

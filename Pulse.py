@@ -108,7 +108,7 @@ class Pulse:
 				sampleNumMin.append(i)
 		return [sampleNumMin, minAmp]
 
-	#Returns the last sample numbers where the waveform drops beneath the half the minimum (assuming negative peak)
+	#Returns the last sample numbers where the waveform drops beneath a fraction of the minimum (assuming negative peak)
 	#Returns None if the pulse has two equal minima
 	def getFracMinPoints(self, frac):
 		if frac < 0 or frac > 1:
