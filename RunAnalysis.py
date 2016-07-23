@@ -5,61 +5,26 @@ import sys
 import Pulse
 import Event
 import DataSet
-import spheDataSet
 import Group
 
-#Read in waveforms from file
-#filename = "../../DataStorage/2PadData/TestData/TestData.txt"
-#filename = "../../DataStorage/2PadData/2PadScan_00.txt"
+
 estRiseTime = 30
 risePointTrig = 2.5
 baselineLength = 30
 PulseWidth = 130 
-minAmplitude = -30
-#IF all events removed, exit cleanly
+minAmplitude = -40
 
-filenamed  = "../../DataStorage/SummerData/1Inch_Direct_0706.txt"
-filename5  = "../../DataStorage/SummerData/PositionScan/5mm.txt"
-filename10 = "../../DataStorage/SummerData/1Inch_0706.txt"
-filename15 = "../../DataStorage/SummerData/15Inch_0707.txt"
-data = DataSet.DataSet("../../DataStorage/SummerData/Strips/direct_18-23.txt", polarity = -1)
-data.plotRandomEvents(10)
-data.cleanEvents(baselineLength, PulseWidth, estRiseTime, risePointTrig, minAmplitude)
-data.plotRandomEvents(10)
-sys.exit()
 
-data = DataSet.DataSet("10_clean.txt")
-data.eventArray[0].getAmpsNearMax()
-sys.exit()
-
-data = spheDataSet.spheDataSet(filename10)
-data.cleanEvents(baselineLength, PulseWidth, estRiseTime, risePointTrig, minAmplitude)
-data.plotRandomEvents(5)
-
-group = Group.Group([filenamed, filename5, filename10, filename15])
-group.cleanAll(baselineLength, PulseWidth, estRiseTime, risePointTrig, minAmplitude)
-cleanNames = ["d_clean.txt", "5_clean.txt", "10_clean.txt", "15_clean.txt"]
-group.writeAll(cleanNames)
-group = Group.Group(cleanNames)
-group.cleanAll(baselineLength, PulseWidth, estRiseTime, risePointTrig, minAmplitude, minPeakLoc = 0, maxPeakLoc = 0)
-#print
-#for data in group:
-#	print max(data.getAvPower())
-#	print np.sum(data.getAvPower())
-#	print "\n###############################\n"
-	#print data.getAvAmplitudes(ordered = True)
-	#print [entry*data.timestep for entry in data.getAvRiseTime()]
-	#print
-
-#filenameArray = ["../../DataStorage/SummerData/1Inch_0706.txt", "../../DataStorage/SummerData/1Inch_0713_Systematics.txt", "../../DataStorage/SummerData/1Inch_0713_Systematics2.txt"]
+#filenameArray = ["../../NIM/nicr_12-17.txt", "../../NIM/nicr_12-17_systematic1.txt", "../../NIM/nicr_12-17_systematic2.txt", "../../NIM/nicr_12-17_systematic3.txt"]
 #group = Group.Group(filenameArray)
 #group.cleanAll(baselineLength, PulseWidth, estRiseTime, risePointTrig, minAmplitude)
-#filenameArray_clean = ["Sys1_Clean.txt", "Sys2_Clean.txt", "Sys3_Clean.txt"]
+filenameArray_clean = ["../../NIM/nicr_12-17_clean.txt", "../../NIM/nicr_12-17_systematic1_clean.txt", "../../NIM/nicr_12-17_systematic2_clean.txt", "../../NIM/nicr_12-17_systematic3_clean.txt"]
 #group.writeAll(filenameArray_clean)
-#group = Group.Group(filenameArray_clean)
+group = Group.Group(filenameArray_clean)
 #group.getSystematicAmplitudeError()
-#group.getSystematicRiseTimeError()
+group.getSystematicRiseTimeError()
 
+sys.exit()
 
 #filename = "../../DataStorage/SummerData/1Inch_Direct_0706.txt"
 #data = DataSet.DataSet(filename)

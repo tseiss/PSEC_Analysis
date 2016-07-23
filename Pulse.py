@@ -248,6 +248,13 @@ class Pulse:
 		iArray = range(0, maxSample)[::-1] #Reverses order of array
 		point10 = None
 		point90 = None
+
+		#Evan implemented: 
+		#this is the number of samples after which the algorithm says:
+		#"I have found the point10 for real, no need to double
+		#check in the case of a noise spike"
+		schlopSamples = 5 
+		schlopCount = -1
 		if discrete:
 			for i in iArray:
 				if self.waveform[i] >= 0.9*maxVoltage and not point90:
@@ -257,8 +264,12 @@ class Pulse:
 				#If come back above 10%, reset p10 until drop back beneath
 				if self.waveform[i] < 0.1*maxVoltage and point10:
 					point10 = None
+		#print "After discrete check, types are: " + str(type(point10)) + "\t" + str(type(point90))
 		else: #Find exact crossing point on line between them
 			for i in iArray:
+				if schlopCount >= 0:
+					schlopCount += 1
+				print "i = " + str(i) + "\t" + str(self.waveform[i])
 				if self.waveform[i] >= 0.9*maxVoltage and not point90:
 					if self.waveform[i] == 0.9*maxVoltage: 
 						point90 = i
@@ -272,6 +283,7 @@ class Pulse:
 					if self.waveform[i] < 0.9*maxVoltage and point90:
 						point90 = None
 				if self.waveform[i] >= 0.1*maxVoltage and not point10:
+					schlopCount = 0 #initialize schlop counting
 					if self.waveform[i] == 0.1*maxVoltage: 
 						point10 = i
 					else:
@@ -281,8 +293,10 @@ class Pulse:
 						y2 = self.waveform[i+1]
 						point10 = (0.1*maxVoltage*(x2-x1)+y2*x1-y1*x2)/(y2-y1)
 				#If come back above 10%, reset p10 until drop back beneath
-				if self.waveform[i] < 0.1*maxVoltage and point10:
+				if self.waveform[i] < 0.1*maxVoltage and point10 and schlopCount < schlopSamples:
+					schlopSamples = -1 #turn schlop counting off
 					point10 = None
+
 		return point90 - point10
 
 	#Computes the integral of the square of the waveform
