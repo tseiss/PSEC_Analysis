@@ -130,15 +130,19 @@ class Event():
 
 	#Finds the min of each channel. 
 	#Returns array of [sampleNumMin, min], one for each channel
-	def findMins(self, channelNums):
+	def findMins(self, channelNums = None):
 		outArray = []
+		if channelNums is None:
+			channelNums = range(0, len(self.pulseArray))
 		for i in channelNums:
 			outArray.append(self.pulseArray[i].findMin())
 		return outArray	
 	#Finds the max of each channel. 
 	#Returns array of [sampleNumMax, max], one for each channel		
-	def findMaxes(self, channelNums):
+	def findMaxes(self, channelNums = None):
 		outArray = []
+		if channelNums is None:
+			channelNums = range(0, len(self.pulseArray))
 		for i in channelNums:
 			outArray.append(self.pulseArray[i].findMax())
 		return outArray
