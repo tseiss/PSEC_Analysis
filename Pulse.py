@@ -260,9 +260,9 @@ class Pulse:
 				if self.waveform[i] < 0.1*maxVoltage and point10:
 					point10 = None
 		else: #Find exact crossing point on line between them
-			if schlopCounter is not None:
-				schlopCounter += 1
 			for i in iArray:
+				if schlopCounter is not None:
+					schlopCounter += 1
 				if self.waveform[i] >= 0.9*maxVoltage and not point90:
 					if self.waveform[i] == 0.9*maxVoltage: 
 						point90 = i
@@ -290,6 +290,7 @@ class Pulse:
 					if schlopCounter < schlopSamples:
 						schlopCounter = None
 						point10 = None
+
 		return point90 - point10
 
 	#Computes the integral of the square of the waveform
