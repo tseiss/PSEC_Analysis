@@ -270,15 +270,15 @@ class DataSet:
 				plt.show()
 	
 	#returns an array of the amplitudes, all 6 amplitudes per event
-	def getAmplitudeDist(self, ordered = True):
+	def getAmplitudeDist(self,frac, ordered = True):
 		amplitudeDist = []
 		for event in self:
-			amplitudeDist.append(event.getAmplitudes(ordered))
+			amplitudeDist.append(event.getAmpsNearMax(frac, ordered))
 		return amplitudeDist
 
 	#Returns the average amplitude and stat. err. on every channel: [[av1, std1], [av2, std2], ...]
-	def getAvAmplitudes(self, ordered = False):
-		amplitudeDist = self.getAmplitudeDist(ordered)
+	def getAvAmplitudes(self, frac = 0.6, ordered = False):
+		amplitudeDist = self.getAmplitudeDist(frac, ordered)
 		amps = np.average(amplitudeDist, axis = 0) #Average along the correct axis
 		stds = np.std(amplitudeDist, axis = 0)
 		returnArray = []

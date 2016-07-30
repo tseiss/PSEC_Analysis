@@ -242,12 +242,25 @@ class Event():
 		return amps
 
 	#Search for min and max (neg and pos) amps between frac of main negative peak
-	def getAmpsNearMax(self, frac):
+	def getAmpsNearMax(self, frac, ordered = True):
 		primCh = self.channelOrder[0]
 		lowerPoint, upperPoint = self.pulseArray[primCh].getFracMinPoints(frac)
 		amps = self.getAmpsInWindow(lowerPoint, upperPoint)
-		return amps
-		"""
+		#return only the absolute maximum amplitude found
+		max_amps = []
+		for a in amps:
+			if(abs(a[0]) > abs(a[1])):
+				max_amps.append(a[0])
+			else:
+				max_amps.append(a[1])
+
+		#currently, amps are unordered
+		if ordered:
+			return [max_amps[i] for i in self.channelOrder]
+		else:
+			return max_amps
+			
+		'''
 		print amps
 		self.plotPulses()
 		print lowerPoint
@@ -257,4 +270,5 @@ class Event():
 		plt.plot(lowerPoint*timestep, self.pulseArray[primCh].waveform[lowerPoint], 'ko')
 		plt.plot(upperPoint*timestep, self.pulseArray[primCh].waveform[upperPoint], 'ko')
 		plt.show()
-		"""
+		'''
+		
