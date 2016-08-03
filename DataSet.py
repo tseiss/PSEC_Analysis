@@ -209,7 +209,7 @@ class DataSet:
 	#Computes the average rise time and standard deviation
 	def getAvRiseTime(self):
 		riseTimes = self.getMeasRiseTimes()
-		return np.average(riseTimes), np.std(riseTimes)
+		return np.average(riseTimes)*self.timestep, np.std(riseTimes)*self.timestep
 		
 	#Plots events with a risetime above the threshold. Plots at most maxPlots events
 	def plotEventsAboveThresholdRiseTime(self, threshold, maxPlots, discrete = False):
