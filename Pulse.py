@@ -322,3 +322,10 @@ class Pulse:
 		plt.ylabel("Power Spectrum")
 		if show:
 			plt.show()
+
+	#return a list of all sample voltages
+	def getAllSampleVoltages(self):
+		return self.waveform
+
+	def getWaveform(self):
+		return ([n*self.timestep for n in range(0, len(self.waveform))], self.waveform)

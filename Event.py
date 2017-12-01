@@ -230,6 +230,15 @@ class Event():
 			powerArray.append(pulse.getPower())
 		return powerArray
 
+	#returns a list of all sample voltages on all channels
+	def getAllSampleVoltages(self):
+		allVoltages = []
+		for ch in self.channelOrder:
+			oneChWave = self.pulseArray[ch].getAllSampleVoltages()
+			for v in oneChWave:
+				allVoltages.append(v)
+		return allVoltages
+
 	#Find largest min. Search on other channels for mins/maxes there	
 	#Signal min/max in a given region, channel by channel
 	#return the the mins and maxes of every channel within the window [[min0, max0], [min1, max1], ...]
@@ -271,4 +280,8 @@ class Event():
 		plt.plot(upperPoint*timestep, self.pulseArray[primCh].waveform[upperPoint], 'ko')
 		plt.show()
 		'''
+
+	def getPulseWaveform(self, channelNum):
+		times, wave = self.pulseArray[channelNum].getWaveform()
+		return (times,wave)
 		

@@ -306,6 +306,17 @@ class DataSet:
 		ax.yaxis.set_minor_locator(minorLocator)
 		plt.show()
 
+	#return a list of all voltages from all samples
+	def getListOfSampleVoltages(self):
+		allVoltages = []
+		for event in self.eventArray[:200]:
+			eventVolts = event.getAllSampleVoltages()
+			for v in eventVolts:
+				allVoltages.append(v)
+
+		return allVoltages
+
+
 	#Gets the average power in each channel. Averaged over all events in self
 	def getAvPower(self):
 		powerArray = [[] for i in range(0, self.numChannels)]
@@ -362,3 +373,8 @@ class DataSet:
 	#Plots the channels listed in the array channelNums (ie = [1, 2, 4])
 	def plotEvent(self, eventNum, channelNums, show = True, fmtArray = None, ax = None):
 		self.eventArray[eventNum].plotPulses(channelNums, show, fmtArray, ax = None)
+
+	#returns the waveform and timing array 
+	def getEventWaveform(self, eventNum, channelNum):
+		times, wave = self.eventArray[eventNum].getPulseWaveform(channelNum)
+		return (times, wave)
