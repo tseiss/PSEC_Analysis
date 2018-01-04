@@ -42,6 +42,9 @@ class Group:
 		sys.stdout = oldstdout
 		print "Done."
 
+	def getArray(self):
+		return self.dataSetArray
+
 	#Cleans all data sets in the group. Params are same as in DataSet.cleanEvents()
 	def cleanAll(self, baselineLength, PulseWidth, estRiseTime, risePointTrig, minAmplitude, minPeakLoc = None, maxPeakLoc = None):
 		i = 0
@@ -222,4 +225,19 @@ class Group:
 		fracSysErr = np.abs(sigmaSys)/np.average(rtArray)	
 		print "Fractional Systematic Error:", fracSysErr
 		return fracSysErr
-			
+
+	#goes in all datasets and counts 
+	#pulses from all events and all channels
+	#returns number of pulses and number of events total
+	def countAllPulses(self, threshold, buttFreq):
+		n_pulses = 0
+		n_events = 0 
+		for dset in self.dataSetArray:
+			np, ne = dset.countAllPulses(threshold, buttFreq)
+			n_pulses += np
+			n_events += ne 
+
+		return (n_pulses, n_events)
+
+
+

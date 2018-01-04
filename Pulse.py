@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import butter, lfilter
+import scipy.interpolate as inter 
+
 import sys
 
 class Pulse:
@@ -45,6 +48,9 @@ class Pulse:
 	#Returns waveform array of the pulse
 	def getWaveform(self):
 		return self.waveform
+
+	def getTimestep(self):
+		return self.timestep
 	
 	#Does the integral of the pulse and returns the value
 	def integrate(self):
@@ -78,35 +84,88 @@ class Pulse:
 		if show:
 			plt.show()
 		return handle
+
+	#Plots the pulse and spline fit
+	def plotSpline(self, show = True, fmt = None, ax = None):
+		spline_wave = self.getSplineWaveform(10000)
+		x = [n*self.timestep for n in np.linspace(0, len(self.waveform), len(spline_wave))]
+		if fmt and ax:
+			handle, = ax.plot(x, spline_wave, fmt)
+		elif fmt and not ax:
+			handle, = plt.plot(x, spline_wave, fmt)
+		elif not fmt and ax:
+			handle, = ax.plot(x, spline_wave)
+		else:
+			handle, = plt.plot(x, spline_wave)
+		plt.xlabel("Time (ns)", fontsize = 18)
+		plt.ylabel("Pulse Amplitude (mV)", fontsize = 18)
+		if show:
+			plt.show()
+		return handle
+
+	#Plots the pulse with a butterworth filter on it
+	def plotFiltered(self, buttFreq, show = True, fmt = None, ax = None ):
+		filtwave = self.butterworthFilter(buttFreq)
+		x = [n*self.timestep for n in range(0, len(filtwave))]
+
+		if fmt and ax:
+			handle, = ax.plot(x, filtwave, fmt)
+		elif fmt and not ax:
+			handle, = plt.plot(x, filtwave, fmt)
+		elif not fmt and ax:
+			handle, = ax.plot(x, filtwave)
+		else:
+			handle, = plt.plot(x, filtwave)
+		plt.xlabel("Time (ns)", fontsize = 18)
+		plt.ylabel("Pulse Amplitude (mV)", fontsize = 18)
+		if show:
+			plt.show()
+		return handle
 	
 	#Finds the max and returns [sampleNumMax, max]
 	#SampleNumMax is an array of all places where the max is reached
-	#Searches in window between sample numbers (lowerLoc, upperLoc)
+	#Searches in window between sample numbers (min_sample, max_sample)
 	#If one (or both) not given, searches to end of waveform in that direction
-	def findMax(self, lowerLoc = None, upperLoc = None):
-		if lowerLoc is None:
-			lowerLoc = 0
-		if upperLoc is None:
-			upperLoc = len(self.waveform)
-		maxAmp = max(self.waveform[lowerLoc:upperLoc])
+	def findMax(self, min_sample = None, max_sample = None):
+		if min_sample is None:
+			min_sample = 0
+		if max_sample is None:
+			max_sample = len(self.waveform)
+		maxAmp = max(self.waveform[min_sample:max_sample])
 		sampleNumMax = []
-		for i in range(lowerLoc, upperLoc):
+		for i in range(min_sample, max_sample):
 			if self.waveform[i] == maxAmp:
 				sampleNumMax.append(i)
 		return [sampleNumMax, maxAmp]
+
 	#Finds the min and returns [sampleNumMin, min]
 	#SampleNumMin is an array of all places where the min is reached		
-	def findMin(self, lowerLoc = None, upperLoc = None):
-		if lowerLoc is None:
-			lowerLoc = 0
-		if upperLoc is None:
-			upperLoc = len(self.waveform)
-		minAmp = min(self.waveform[lowerLoc:upperLoc])
-		sampleNumMin = []
-		for i in range(0, len(self.waveform)):
-			if self.waveform[i] == minAmp:
-				sampleNumMin.append(i)
-		return [sampleNumMin, minAmp]
+	def findMin(self, min_sample = None, max_sample = None):
+		if min_sample is None:
+			min_sample = 0
+		if max_sample is None:
+			max_sample = len(self.waveform)
+		min_amp = min(self.waveform[min_sample:max_sample])
+		min_sample_number = []
+		for i in range(len(self.waveform)):
+			if self.waveform[i] == min_amp:
+				min_sample_number.append(i)
+		return [min_sample_number, min_amp]
+
+	#Find the value and sample of the "peak" of the pulse
+	#this function is blind to polarity and thus accepts both
+	#polarities
+	def findPeak(self, min_sample = None, max_sample = None):
+		if(min_sample is None):
+			min_sample = 0
+		if(max_sample is None):
+			max_sample = len(self.waveform)
+
+		windowedwave = self.waveform[min_sample:max_sample]
+		abswave = [abs(_) for _ in windowedwave]
+		maxidx = abswave.index(max(abswave))
+		maxV = windowedwave[maxidx] #this value is negative or positive, reflecting polarity
+		return (maxidx, maxV)
 
 	#Returns the last sample numbers where the waveform drops beneath a fraction of the minimum (assuming negative peak)
 	#Returns None if the pulse has two equal minima
@@ -115,8 +174,8 @@ class Pulse:
 			print "Amplitude fraction must be between 0 and 1."
 			return None
 		sampleNumMin, minAmp = self.findMin()
-		if len(sampleNumMin) > 1:
-			return None
+
+
 		sampleNumMin = sampleNumMin[0]
 		backIndices = range(0, sampleNumMin)[::-1] #Count backward from sampleNumMin
 		forwardIndices = range(sampleNumMin, len(self.waveform))
@@ -221,77 +280,73 @@ class Pulse:
 		else:
 			self.waveform = self.waveform[minSamp:maxSamp]
 			return True
-	
-	#Returns the rise time in samples between rise point and max
-	def getRiseTime(self, estRiseTime, risePointTrig):
-		maxSamples, maxVoltage = self.findMin()
-		if len(maxSamples) > 1:
-			print "Attempted to find rise time of pulse with more than one min location."
-			sys.exit()
-		else:
-			maxSample = maxSamples[0]
-		risePoint = self.findRisePoint(estRiseTime, risePointTrig)[0]
-		if not risePoint:
-			return None
-		return (maxSample - risePoint)
-			
-	#Returns the 10-90 rise time, taking the last oscillation below 10% and the first below 90%,
-	#iterating backwards from the maximum
-	#if symmetrizing, take first threshold crossing on both channels (if iterating forwards)
-	def getMeasRiseTime(self, discrete = False, symmetrizing = True):
-		maxSamples, maxVoltage = self.findMin()
-		if len(maxSamples) > 1:
-			print "Attempted to find rise time of pulse with more than one min location."
-			sys.exit()
-		else:
-			maxSample = maxSamples[0]
-		iArray = range(0, maxSample)[::-1] #Reverses order of array
-		point10 = None
-		point90 = None
-		schlopCounter = None
-		schlopSamples = 5
-		if discrete:
-			for i in iArray:
-				if self.waveform[i] >= 0.9*maxVoltage and not point90:
-					point90 = i+1
-				if self.waveform[i] >= 0.1*maxVoltage and not point10:
-					point10 = i
-				#If come back above 10%, reset p10 until drop back beneath
-				if self.waveform[i] < 0.1*maxVoltage and point10:
-					point10 = None
-		else: #Find exact crossing point on line between them
-			for i in iArray:
-				if schlopCounter is not None:
-					schlopCounter += 1
-				if self.waveform[i] >= 0.9*maxVoltage and not point90:
-					if self.waveform[i] == 0.9*maxVoltage: 
-						point90 = i
-					else:
-						x1 = float(i)
-						x2 = float(i+1)
-						y1 = self.waveform[i]
-						y2 = self.waveform[i+1]
-						point90 = (0.9*maxVoltage*(x2-x1)+y2*x1-y1*x2)/(y2-y1)
-				if symmetrizing:
-					if self.waveform[i] < 0.9*maxVoltage and point90:
-						point90 = None
-				if self.waveform[i] >= 0.1*maxVoltage and point10 is None:
-					schlopCounter = 0
-					if self.waveform[i] == 0.1*maxVoltage: 
-						point10 = i
-					else:
-						x1 = float(i)
-						x2 = float(i+1)
-						y1 = self.waveform[i]
-						y2 = self.waveform[i+1]
-						point10 = (0.1*maxVoltage*(x2-x1)+y2*x1-y1*x2)/(y2-y1)
-				#If come back above 10%, reset p10 until drop back beneath
-				if self.waveform[i] < 0.1*maxVoltage and point10 is not None and schlopCounter is not None:
-					if schlopCounter < schlopSamples:
-						schlopCounter = None
-						point10 = None
 
-		return point90 - point10
+
+	#Returns the 10-90 rise time, by looking at the
+	#peak and iterating until it falls below 90% and 10%
+	#No baseline subtraction done at this point
+	def getMeasRiseTime(self, peak_sample, peak_amp):
+		polarity = np.sign(peak_amp)
+
+		samp_count = peak_sample
+		thresh90 = polarity*0.9*peak_amp
+		thresh10 = polarity*0.1*peak_amp
+		sam90 = None
+		sam10 = None
+		while True: 
+			samp_count -= 1
+			if(samp_count == -1):
+				break
+			if(polarity*self.waveform[samp_count] <= thresh90 and sam90 is None):
+				#found 90 point. Interpolate
+				if(polarity*self.waveform[samp_count] == thresh90):
+					sam90 = samp_count
+				else:
+					i = samp_count
+					x1 = float(i)
+					x2 = float(i+1)
+					y1 = abs(self.waveform[i])
+					y2 = abs(self.waveform[i+1])
+					m = (y2 - y1)/(x2 - x1)
+					b = y2 - m*x2
+					if(m == 0):
+						return (None)
+
+					sam90 = (polarity*thresh90 - b)/m
+				continue
+			elif(polarity*self.waveform[samp_count] <= thresh10 and sam10 is None):
+				#found 10 point. Interpolate
+				if(polarity*self.waveform[samp_count] == thresh10):
+					sam10 = samp_count
+				else:
+					i = samp_count
+					x1 = float(i)
+					x2 = float(i+1)
+					y1 = abs(self.waveform[i])
+					y2 = abs(self.waveform[i+1])
+					m = (y2 - y1)/(x2 - x1)
+					b = y2 - m*x2
+					if(m == 0):
+						return (None)
+					sam10 = (polarity*thresh10 - b)/m
+				continue
+
+			elif(sam90 is not None and sam10 is not None):
+				#we're done here
+				break
+			else:
+				continue
+
+		if(sam10 is None or sam90 is None):
+			return (None)
+
+		else:
+			if(abs(sam90 - sam10) > 1000):
+				self.plot()
+				#sys.exit()
+			return abs(sam90 - sam10)
+
+
 
 	#Computes the integral of the square of the waveform
 	def getPower(self):
@@ -301,27 +356,30 @@ class Pulse:
 		tot *= self.timestep
 		return tot
 	
-	#Computes the FFT of the waveform (if not already computed) and stores it
-	def getfft(self):
-		freq = []
-		fft = []
-		n = len(self.waveform)
-		d = self.timestep*(1.0e-9)
-		freq = np.fft.fftfreq(n, d)
-		fft = np.absolute(np.fft.fft(self.waveform))
-		freq = [x*1e-9 for x in freq if x > 0]
-		fft = fft[:len(freq)]
-		return (freq, fft)
+	#Computes the power spectral density of the waveform
+	def getPSD(self):
+		H = np.fft.fft(self.waveform)
+		freq = np.fft.fftfreq(len(self.waveform), d=self.timestep)
+		#power spectral density
+		pH = [(m.real**2 + m.imag**2) for m in H]
+		hznorm = 50*np.sqrt(0.5*abs(min(freq) - max(freq))) #i don't understand the 50
+		psdH = pH/hznorm
+
+		#fold the frequency to include only positive
+		#frequencies, adds negative to positive
+		folded = []
+		newf = []
+		lost_index = len(freq)/2
+		folded.append(2*H[0])
+		newf.append(freq[0])
+		for i in range(1, lost_index):
+			folded.append(np.sqrt((H[i] + H[-i])**2))
+			newf.append(freq[i])
+
+		folded.append(H[lost_index])
+		newf.append(-1*freq[lost_index])
+		return (newf, folded)
 	
-	#Plots the FFT of the pulse
-	def plotfft(self, show = True):
-		(freq, fft) = self.getfft()
-		plt.semilogy(freq, fft, 'k')
-		plt.xlim(0, max(freq))
-		plt.xlabel("Frequency (GHz)")
-		plt.ylabel("Power Spectrum")
-		if show:
-			plt.show()
 
 	#return a list of all sample voltages
 	def getAllSampleVoltages(self):
@@ -329,3 +387,112 @@ class Pulse:
 
 	def getWaveform(self):
 		return ([n*self.timestep for n in range(0, len(self.waveform))], self.waveform)
+
+	#returns the waveform with a butterworth low pass
+	#filter applied
+	def butterworthFilter(self, buttFreq):
+		filter_order = 5
+		#buttFreq assumed in GHz
+		nyq = np.pi/(self.timestep) #for the scipy package, they define nyquist this way in rads/sec
+		rad_buttFreq = buttFreq #now in radian units
+		b, a = butter(filter_order,rad_buttFreq/nyq)
+		hfilt = lfilter(b, a, self.waveform)
+		return hfilt
+
+	#counts the number of pulses above threshold
+	#after a butterowrth filter
+	#assumes threshold is the actual value (like -3mv)
+	#and assumes the pulse is negative polar
+	def countPulses(self, threshold, buttFreq):
+		filt_wave = self.butterworthFilter(buttFreq)
+		npulses = 0
+		#requires this many samples above threshold to be counted as a pulse
+		sample_buffer_count = 5
+		below_thresh = False
+		sample_latch = None
+		for i, v in enumerate(filt_wave):
+			if(v < threshold and not below_thresh):
+				below_thresh = True
+				sample_latch = i
+				continue
+
+			if(v > threshold and below_thresh):
+				samples_under_thresh = abs(i - sample_latch)
+				if(samples_under_thresh >= sample_buffer_count):
+					#that is a true pulse, add it to n
+					npulses += 1
+
+				#if the above if statement doesnt pass
+				#it was noise, forget about it, no increment to npulses
+				below_thresh = False
+				sample_latch = None
+				continue
+
+		#if the last sample never goes above threshold
+		#then we should count it as a pulse
+		if(below_thresh):
+			npulses += 1
+
+		return npulses
+
+
+	#Does a butterworth filter on the waveform and 
+	#then finds all pulses under threshold. 
+	#Return the sample numbers for which this peak
+	#is above threshold
+	def findPulseSamplebounds(self, threshold, buttFreq):
+		filt_wave = self.butterworthFilter(buttFreq)
+		sample_bound_list = []
+		#requires this many samples above threshold to be counted as a pulse
+		sample_buffer_count = 5
+		below_thresh = False
+		sample_latch = None
+		for i, v in enumerate(filt_wave):
+			if(v < threshold and not below_thresh):
+				below_thresh = True
+				sample_latch = i
+				continue
+
+			if(v > threshold and below_thresh):
+				samples_under_thresh = abs(i - sample_latch)
+				if(samples_under_thresh >= sample_buffer_count):
+					#that is a true pulse, add its sample bounds
+					#to the list
+					bounds = [sample_latch, i]
+					sample_bound_list.append(bounds)
+
+				#if the above if statement doesnt pass
+				#it was noise, forget about it, no increment to npulses
+				below_thresh = False
+				sample_latch = None
+				continue
+
+		#if the last sample never goes above threshold
+		#then we should count it as a pulse
+		if(below_thresh):
+			bounds = [sample_latch, len(filt_wave) - 1]
+			sample_bound_list.append(bounds)
+
+		return sample_bound_list
+
+
+	#smoothing is a least squares error, so 0.1 allows
+	#less error in the fit than 1.5. ranges from 0 to inf
+	def getSplineWaveform(self, smoothing = None):
+		oldx = range(len(self.waveform))
+		newx = np.linspace(0, max(oldx), len(self.waveform)*10)
+
+		if(smoothing is None):
+			s1 = inter.InterpolatedUnivariateSpline(oldx, self.waveform)
+		else:
+			s1 = inter.UnivariateSpline(oldx, self.waveform, s=smoothing)
+
+		return s1(newx)
+
+
+
+
+
+
+
+
